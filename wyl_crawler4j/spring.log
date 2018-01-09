@@ -1,0 +1,16 @@
+11:45:30,258 INFO  [us.codecraft.webmagic.Spider] Spider so.meishi.cc started!
+11:45:30,581 INFO  [us.codecraft.webmagic.downloader.HttpClientDownloader] downloading page success http://so.meishi.cc/?&q=%E8%8A%92%E6%9E%9C&sort=time
+11:45:30,872 INFO  [us.codecraft.webmagic.downloader.HttpClientDownloader] downloading page success http://www.meishij.net/zuofa/mangguonuomici_5.html
+11:45:30,921 ERROR [us.codecraft.webmagic.Spider] process request Request{url='http://www.meishij.net/zuofa/mangguonuomici_5.html', method='null', extras=null, priority=0, headers={}, cookies={}} error
+java.lang.NullPointerException
+	at com.wangyuelin.processor.CookbookProcessor.parseMain(CookbookProcessor.java:132)
+	at com.wangyuelin.processor.CookbookProcessor.process(CookbookProcessor.java:36)
+	at us.codecraft.webmagic.Spider.onDownloadSuccess(Spider.java:414)
+	at us.codecraft.webmagic.Spider.processRequest(Spider.java:406)
+	at us.codecraft.webmagic.Spider.access$000(Spider.java:61)
+	at us.codecraft.webmagic.Spider$1.run(Spider.java:320)
+	at us.codecraft.webmagic.thread.CountableThreadPool$1.run(CountableThreadPool.java:74)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+	at java.lang.Thread.run(Thread.java:745)
+11:45:30,924 INFO  [us.codecraft.webmagic.Spider] Spider so.meishi.cc closed! 2 pages downloaded.
