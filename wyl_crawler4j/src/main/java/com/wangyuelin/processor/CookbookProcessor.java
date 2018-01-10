@@ -18,6 +18,9 @@ import us.codecraft.webmagic.processor.PageProcessor;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 处理每种水果做法的类
+ */
 public class CookbookProcessor implements PageProcessor {
     private Site site = Site.me().setRetryTimes(3).setSleepTime(0)
             .setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_2) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/26.0.1410.65 Safari/537.31");
@@ -37,8 +40,8 @@ public class CookbookProcessor implements PageProcessor {
             String assistant = page.getHtml().xpath("//div[@class='yl fuliao clearfix']").get();//辅料
             parseAssistant(getElement(assistant));
 
-            List<String> steps = page.getHtml().xpath("//div[@class='content clearfix']").all();//步骤
-            parseSteps(steps);
+            String stepStr = page.getHtml().xpath("//div[@class='editnew edit]").get();//步骤
+            parseSteps(stepStr);
 
 
         } else if (url.startsWith(PREFIX)) {//解析得到菜谱的简介
@@ -48,9 +51,6 @@ public class CookbookProcessor implements PageProcessor {
                 page.addTargetRequest(cookBookBean.getDetailUrl());
                 break;
             }
-//            System.out.println("解析得到的简介：" + cookList.toString());
-
-
         }
 
 
@@ -71,7 +71,7 @@ public class CookbookProcessor implements PageProcessor {
     public static void main(String[] args) {
         BasicConfigurator.configure();
 
-        Spider.create(new CookbookProcessor()).addPipeline(new ConsolePipeline()).addUrl("http://so.meishi.cc/?&q=%E8%8A%92%E6%9E%9C&sort=time").thread(4).run();
+//        Spider.create(new CookbookProcessor()).addPipeline(new ConsolePipeline()).addUrl("http://so.meishi.cc/?&q=%E8%8A%92%E6%9E%9C&sort=time").thread(4).run();
     }
 
     private List<CookBookBean> parseIntro(List<String> cookBookList) {
@@ -92,7 +92,6 @@ public class CookbookProcessor implements PageProcessor {
             cookBookBean.setIntro(span.text());
 
             books.add(cookBookBean);
-//            System.out.println("解析得到的菜谱：" + cookBookBean.toString());
         }
         return books;
     }
@@ -127,17 +126,24 @@ public class CookbookProcessor implements PageProcessor {
             MaterialBean materialBean = new MaterialBean();
             Element li = lis.get(i);
             Element cDiv = li.getElementsByTag("div").first();
-            materialBean.setName(cDiv.getElementsByTag("a").first().text());//材料的名称
-            materialBean.setNum(cDiv.getElementsByTag("span").first().text());//材料的数量
-            materialBean.setImg(cDiv.getElementsByTag("img").first().attr("src"));
-//            System.out.println("----------------获取的标签--------------");
-//            System.out.println("a:" + "\n" + cDiv.getElementsByTag("a").first().toString());
-//            System.out.println("span:" + "\n" + cDiv.getElementsByTag("span").first().toString());
+            Element a = cDiv.getElementsByTag("a").first();
+            if (a != null){
+                materialBean.setName(a.text());//材料的名称
+            }
+            Element span = cDiv.getElementsByTag("span").first();
+            if (span != null){
+                materialBean.setNum(span.text());//材料的数量
+            }
+            Element img = li.getElementsByTag("img").first();
+            if (img != null){
+                materialBean.setImg(img.attr("src"));
+            }
+
+
             list.add(materialBean);
 
         }
 
-        System.out.println("主料：" + list.toString());
 
         return list;
     }
@@ -156,14 +162,24 @@ public class CookbookProcessor implements PageProcessor {
         for (int i = 0; i < size; i++) {
             MaterialBean materialBean = new MaterialBean();
             Element li = lis.get(i);
-            materialBean.setName(li.getElementsByTag("h4").first().getElementsByTag("a").first().text());//名称
-            materialBean.setNum(li.getElementsByTag("span").text());//数量
-            materialBean.setImg(li.getElementsByTag("img").first().attr("src"));
+            Element h4 = li.getElementsByTag("h4").first();
+            if (h4 != null){
+                materialBean.setName(h4.getElementsByTag("a").first().text());//名称
+            }
+            Element span = li.getElementsByTag("span").first();
+            if (span != null){
+                materialBean.setNum(span.text());//数量
+            }
+            Element img = li.getElementsByTag("img").first();
+            if (img != null){
+                materialBean.setImg(img.attr("src"));
+            }
+
+
             list.add(materialBean);
 
         }
 
-        System.out.println("辅料：" + list.toString());
         return list;
     }
 
@@ -171,22 +187,43 @@ public class CookbookProcessor implements PageProcessor {
     /**
      * 解析得到步骤
      *
-     * @param steps
+     * @param stepStr
      * @return
      */
-    private List<StepBean> parseSteps(List<String> steps) {
-        if (steps == null) {
+    private List<StepBean> parseSteps( String stepStr) {
+        if (stepStr == null) {
             return null;
         }
-        int size = steps.size();
+        Element stepContent = getElement(stepStr);
+        Elements childs = stepContent.children();
+        int size = childs.size();
         ArrayList<StepBean> stepList = new ArrayList<StepBean>();
-        for (int i = 0; i < size; i++) {
-            String divStr = steps.get(i);
-            Element stepElement = getElement(divStr);
-            StepBean oneStep = parsePerStep(stepElement);
-            if (oneStep != null) {
-                stepList.add(oneStep);
-            }
+        for (int i = 0; i < size; i++){
+            Element child = childs.get(i);
+           String tagName = child.tagName();
+            StepBean oneStep = null;
+           if (tagName.equalsIgnoreCase("div")){
+               oneStep =  parsePerStep(child);
+           }else if (tagName.equalsIgnoreCase("p")){//纯图片
+               Element img = child.children().first();
+               if (img.tagName().equalsIgnoreCase("img")){
+                   oneStep = new StepBean();
+                   oneStep.setImg(img.attr("src"));
+               }
+
+           }else if (tagName.equalsIgnoreCase("h2")){
+               oneStep = new StepBean();
+               oneStep.setName(child.text());//标题
+               //获取标题的子内容，其实是平级的
+               int next = i + 1;
+               if (next < size){
+                   String tip  = childs.get(next).text();
+                   oneStep.setTip(tip);
+               }
+           }
+           if (oneStep != null){
+               stepList.add(oneStep);
+           }
         }
         return stepList;
 
